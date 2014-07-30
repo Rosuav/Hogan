@@ -5,6 +5,8 @@ Note that if hogan.pike is put into $PATH (or its absolute path is known), this
 and any other Goldilocks can be made executable with a shebang. However, this
 trick will work only on systems that allow shebangs to shebangs, which is not a
 POSIX requirement. (Seems to work on Linux, no idea about other platforms.)
+
+Named after the call-sign used on Hogan's Heroes.
 */
 
 mapping(int:function) services=([
