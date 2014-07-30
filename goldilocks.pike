@@ -39,6 +39,8 @@ mapping(int:function) services=([
 //conn->_closing: Flag set to 1 when connection is closed; see usage example.
 //conn->_close: Set this to 1 to request that the connection be closed once all buffered
 //  data is written (including anything returned from this call)
+//Keys in conn[] which do NOT begin with an underscore are entirely yours. Hogan will never
+//read or change them.
 //Any returned string will be sent to the client.
 string echoer(mapping(string:mixed) conn,string data)
 {
