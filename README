@@ -1,0 +1,8 @@
+Simple networking server kernel
+
+Eliminates boiler-plate from basic networking services. Can run multiple
+servers (of the same or different types) in one process; everything happens in
+callback mode (using the Pike.DefaultBackend).
+
+Named after Colonel Hogan from "Hogan's Heroes". :)
+
