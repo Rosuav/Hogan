@@ -94,6 +94,7 @@ int bootstrap()
 
 int main(int argc,array(string) argv)
 {
+	add_constant("G",this);
 	if (argc<2) exit(1,"USAGE: pike %s some_file.pike\nSee goldilocks.pike for an example file to invoke.\n",argv[0]);
 	goldiname=argv[1];
 	foreach (indices(this_program),string const) add_constant(const,this_program[const]); //Make constants available globally
