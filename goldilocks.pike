@@ -25,7 +25,10 @@ mapping(int:function) services=([
 	//to both input and output.
 	2525|HOGAN_LINEBASED:smtp,
 
-	//More flags will be added later, eg HTTP, TELNET, UDP, DNS, SSL, UTF8, ACTIVE.
+	//Telnet command processing can be layered on top of some forms of socket.
+	2323|HOGAN_LINEBASED|HOGAN_TELNET:telnet,
+
+	//More flags will be added later, eg HTTP, UDP, DNS, SSL, UTF8, ACTIVE.
 	//Incompatible flag combinations will be reported to stderr and their portrefs
 	//ignored. On startup, this will prevent backend loop initiation.
 ]);
@@ -67,6 +70,35 @@ string smtp(mapping(string:mixed) conn,string line)
 {
 	conn->_close=1;
 	return "ERROR! Unimplemented!\n";
+}
+
+//Telnet handling changes the function signature. Whenever a complete Telnet sequence is
+//read, it will be passed in as an array, eg IAC WILL NAWS comes through as ({WILL,NAWS}).
+//Subnegotiation also elides the IAC SE, starting with just the SB and the content.
+//IAC doubling is handled automatically, in both directions. To send a Telnet sequence,
+//return an array equivalent to what would be received (including elisions).
+array(int)|string telnet(mapping(string:mixed) conn,string|array(int) line)
+{
+	if (!line)
+	{
+		if (!conn->_closing) {G->_write(conn,({DO,TERMTYPE})); G->_write(conn,({DO,NAWS})); return "Hello, and welcome!\n";}
+		return 0;
+	}
+	if (arrayp(line))
+	{
+		//Attempt to translate Telnet codes back into symbols
+		//Not perfect, as meanings are contextual; for instance, inside a NAWS
+		//subnegotiation, the values are just numbers, so translating back to
+		//mnemonics is less than helpful. It's still true, just not helpful :)
+		program hogan=object_program(G);
+		mapping(int:string) consts=([]);
+		foreach (indices(hogan),string c) if (intp(hogan[c])) consts[hogan[c]]=c;
+		array(string) result=allocate(sizeof(line));
+		foreach (line;int i;int val) result[i]=consts[val] || sprintf("0x%02X",val);
+		return "Telnet: IAC "+result*" "+"\n";
+	}
+	if (line=="quit") {conn->_close=1; return "Bye!\n";}
+	return "Unrecognized command.\n";
 }
 
 void create()

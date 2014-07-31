@@ -8,10 +8,13 @@ object goldi=class{ }(); //Current goldilocks. Will be updated at any time (eg i
 mapping(int:object) socket=([]);
 
 constant HOGAN_LINEBASED=0x10000,HOGAN_CONNTYPE=0xF0000; //Connection types (not bitwise, but portref&HOGAN_CONNTYPE will be equal to some value)
-constant HOGAN_SSL=0x100000; //Additional flags which can be applied on top of a connection type
+constant HOGAN_TELNET=0x100000; //Additional flags which can be applied on top of a connection type
 string describe_conntype(int portref)
 {
-	return ([HOGAN_LINEBASED:"LINE"])[portref&HOGAN_CONNTYPE]||"";
+	return ({
+		([HOGAN_LINEBASED:"LINE"])[portref&HOGAN_CONNTYPE]||"",
+		(portref&HOGAN_TELNET) && "TELNET",
+	})*",";
 }
 string describe_portref(int portref) {return sprintf("%d [%s]",portref&65535,describe_conntype(portref));}
 
@@ -27,9 +30,26 @@ void socket_write(mapping(string:mixed) conn)
 	}
 }
 
-void _write(mapping(string:mixed) conn,string data) {if (data) conn->_writeme+=data; socket_write(conn);}
+void _write(mapping(string:mixed) conn,string|array(int) data)
+{
+	if (data)
+	{
+		if (conn->_portref&HOGAN_TELNET)
+		{
+			if (arrayp(data))
+			{
+				data=(string)replace(data,"\xFF","\xFF\xFF"); //Double any IACs embedded in a Telnet sequence
+				if (data[0]==SB) data+=(string)({IAC,SE});
+				conn->_writeme+="\xFF"+data;
+			}
+			else conn->_writeme+=replace(data,"\xFF","\xFF\xFF"); //Double any IACs in normal text
+		}
+		else conn->_writeme+=data;
+	}
+	socket_write(conn);
+}
 
-void socket_callback(mapping(string:mixed) conn,string data)
+void socket_callback(mapping(string:mixed) conn,string|array(int) data)
 {
 	string writeme;
 	if (mixed ex=catch {writeme=goldi->services[conn->_portref](conn,data);})
@@ -59,13 +79,55 @@ void socket_read(mapping(string:mixed) conn,string data)
 	socket_callback(conn,data);
 }
 
+enum {IS=0x00,ECHO=0x01,SEND=0x01,SUPPRESSGA=0x03,TERMTYPE=0x18,NAWS=0x1F,SE=0xF0,GA=0xF9,SB,WILL,WONT,DO=0xFD,DONT,IAC=0xFF};
+
+void telnet_read(mapping(string:mixed) conn,string data)
+{
+	conn->_telnetbuf+=data;
+	while (sscanf(conn->_telnetbuf,"%s\xff%s",string data,string iac)) if (mixed ex=catch
+	{
+		socket_read(conn,data); conn->_telnetbuf="\xff"+iac;
+		switch (iac[0])
+		{
+			case IAC: socket_read(conn,"\xFF"); conn->_telnetbuf=conn->_telnetbuf[2..]; break;
+			case DO: case DONT: case WILL: case WONT:
+			{
+				socket_callback(conn,({iac[0],iac[1]}));
+				iac=iac[2..];
+				break;
+			}
+			case SB:
+			{
+				string subneg;
+				for (int i=1;i<sizeof(iac);++i)
+				{
+					if (iac[i]==IAC && iac[++i]==SE) {subneg=iac[..i-2]; iac=iac[i+1..]; break;} //Any other TELNET commands inside subneg will be buggy unless they're IAC IAC doubling
+				}
+				if (!subneg) return; //We don't have the complete subnegotiation. Wait till we do. (Actually, omitting this line will have the same effect, because the subscripting will throw an exception. So this is optional, and redundant, just like this sentence is redundant.)
+				socket_callback(conn,(array)replace(subneg,"\xFF\xFF","\xFF"));
+				break;
+			}
+			case SE: break; //Shouldn't happen.
+			case GA:
+			{
+				socket_callback(conn,({GA}));
+				iac=iac[1..];
+				break;
+			}
+			default: break;
+		}
+		conn->_telnetbuf=iac;
+	}) return;
+	socket_read(conn,conn->_telnetbuf); conn->_telnetbuf="";
+}
+
 void accept(int portref)
 {
 	while (object sock=socket[portref]->accept())
 	{
-		mapping(string:mixed) conn=(["_sock":sock,"_portref":portref,"_writeme":"","_data":""]);
+		mapping(string:mixed) conn=(["_sock":sock,"_portref":portref,"_writeme":"","_data":"","_telnetbuf":""]);
 		sock->set_id(conn);
-		sock->set_nonblocking(socket_read,socket_write,socket_close);
+		sock->set_nonblocking((portref&HOGAN_TELNET)?telnet_read:socket_read,socket_write,socket_close);
 		socket_callback(conn,0); //Signal initialization with null data (and no _closing in conn)
 	}
 }
