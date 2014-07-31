@@ -17,7 +17,9 @@ mapping(int:function) services=([
 	//which handles its connections.
 
 	//The simplest form simply notifies you on connections and new data. No buffering
-	//of input, though output is buffered to prevent blocking.
+	//of input, though output is buffered to prevent blocking. There is no significant
+	//difference between being called twice and being called once with the combined
+	//strings, and the two should be treated the same.
 	7007:echoer,
 
 	//Line-based input buffering will be much more useful, though. Note that this is
