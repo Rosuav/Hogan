@@ -20,7 +20,9 @@ mapping(int:function) services=([
 	//of input, though output is buffered to prevent blocking.
 	7007:echoer,
 
-	//Line-based input buffering will be much more useful, though.
+	//Line-based input buffering will be much more useful, though. Note that this is
+	//input buffering, and does not affect output at all; most of these flags apply
+	//to both input and output.
 	2525|HOGAN_LINEBASED:smtp,
 
 	//More flags will be added later, eg HTTP, TELNET, UDP, DNS, SSL, UTF8, ACTIVE.
