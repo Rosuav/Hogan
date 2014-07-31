@@ -86,10 +86,15 @@ array(int)|string telnet(mapping(string:mixed) conn,string|array(int) line)
 	}
 	if (arrayp(line))
 	{
+		if ((string)line==(string)({WILL,TERMTYPE})) G->_write(conn,({SB,TERMTYPE,SEND}));
 		//Attempt to translate Telnet codes back into symbols
 		//Not perfect, as meanings are contextual; for instance, inside a NAWS
 		//subnegotiation, the values are just numbers, so translating back to
 		//mnemonics is less than helpful. It's still true, just not helpful :)
+		//Special cases:
+		if (has_prefix((string)line,(string)({SB,TERMTYPE,IS}))) return sprintf("Telnet: IAC SB TERMTYPE IS %O\n",(string)line[3..]);
+		if (has_prefix((string)line,(string)({SB,NAWS}))) return sprintf("Telnet: IAC SB NAWS %dx%d\n",line[2]<<8|line[3],line[4]<<8|line[5]);
+		//Default case: Translate everything that can be translated
 		program hogan=object_program(G);
 		mapping(int:string) consts=([]);
 		foreach (indices(hogan),string c) if (intp(hogan[c])) consts[hogan[c]]=c;
