@@ -46,7 +46,8 @@ mapping(int:function) services=([
 //  data is written (including anything returned from this call)
 //Keys in conn[] which do NOT begin with an underscore are entirely yours. Hogan will never
 //read or change them.
-//Any returned string will be sent to the client.
+//Any returned string will be sent to the client. You can also send to a conn explicitly:
+//    G->send(conn,"Hello, world!");
 string echoer(mapping(string:mixed) conn,string data)
 {
 	if (!data) if (!conn->_closing)
@@ -81,12 +82,12 @@ array(int)|string telnet(mapping(string:mixed) conn,string|array(int) line)
 {
 	if (!line)
 	{
-		if (!conn->_closing) {G->_write(conn,({DO,TERMTYPE})); G->_write(conn,({DO,NAWS})); return "Hello, and welcome!\n";}
+		if (!conn->_closing) {G->send(conn,({DO,TERMTYPE})); G->send(conn,({DO,NAWS})); return "Hello, and welcome!\n";}
 		return 0;
 	}
 	if (arrayp(line))
 	{
-		if ((string)line==(string)({WILL,TERMTYPE})) G->_write(conn,({SB,TERMTYPE,SEND}));
+		if ((string)line==(string)({WILL,TERMTYPE})) G->send(conn,({SB,TERMTYPE,SEND}));
 		//Attempt to translate Telnet codes back into symbols
 		//Not perfect, as meanings are contextual; for instance, inside a NAWS
 		//subnegotiation, the values are just numbers, so translating back to

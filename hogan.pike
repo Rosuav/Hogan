@@ -30,7 +30,7 @@ void socket_write(mapping(string:mixed) conn)
 	}
 }
 
-void _write(mapping(string:mixed) conn,string|array(int) data)
+void send(mapping(string:mixed) conn,string|array(int) data)
 {
 	if (data)
 	{
@@ -57,7 +57,7 @@ void socket_callback(mapping(string:mixed) conn,string|array(int) data)
 		werror("Error in port %s handler:\n%s\n",describe_portref(conn->_portref),describe_backtrace(ex));
 		return;
 	}
-	_write(conn,writeme);
+	send(conn,writeme);
 }
 
 void socket_close(mapping(string:mixed) conn)
