@@ -18,7 +18,8 @@ string describe_portref(int portref) {return sprintf("%d [%s]",portref&65535,des
 void socket_write(mapping(string:mixed) conn)
 {
 	if (!conn->_sock) return;
-	if (conn->_writeme!="") conn->_writeme=conn->_writeme[conn->_sock->write(conn->_writeme)..];
+	if (conn->_writeme!="" && !conn->_closing && conn->_sock && conn->_sock->is_open())
+		conn->_writeme=conn->_writeme[conn->_sock->write(conn->_writeme)..];
 	if (conn->_writeme=="" && conn->_close && !conn->_closing)
 	{
 		conn->_sock->close();
