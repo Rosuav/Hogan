@@ -18,7 +18,7 @@ mapping(int:function) services=([
 
 	//The simplest form simply notifies you on connections and new data. No buffering
 	//of input, though output is buffered to prevent blocking.
-	7:echoer,
+	7007:echoer,
 
 	//Line-based input buffering will be much more useful, though.
 	2525|HOGAN_LINEBASED:smtp,
