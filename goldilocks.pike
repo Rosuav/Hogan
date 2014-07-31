@@ -28,6 +28,11 @@ mapping(int:function) services=([
 	//Telnet command processing can be layered on top of some forms of socket.
 	2323|HOGAN_LINEBASED|HOGAN_TELNET:telnet,
 
+	//UTF-8 encoding and decoding can be layered on top of sockets, too. Note that
+	//the layers are in strict sequence; Telnet, then UTF-8, then splitting into
+	//lines, as many of them as are applicable.
+	1234|HOGAN_LINEBASED|HOGAN_UTF8:text,
+
 	//More flags will be added later, eg HTTP, UDP, DNS, SSL, UTF8, ACTIVE.
 	//Incompatible flag combinations will be reported to stderr and their portrefs
 	//ignored. On startup, this will prevent backend loop initiation.
@@ -48,7 +53,7 @@ mapping(int:function) services=([
 //read or change them.
 //Any returned string will be sent to the client. You can also send to a conn explicitly:
 //    G->send(conn,"Hello, world!");
-string echoer(mapping(string:mixed) conn,string data)
+string(0..255) echoer(mapping(string:mixed) conn,string(0..255) data)
 {
 	if (!data) if (!conn->_closing)
 	{
@@ -67,7 +72,7 @@ string echoer(mapping(string:mixed) conn,string data)
 
 //Line-based TCP socket. Similar to the above, but instead of getting arbitrary data, the
 //function receives one line (delimited by \n; any trailing \r will be stripped).
-string smtp(mapping(string:mixed) conn,string line)
+string(0..255) smtp(mapping(string:mixed) conn,string(0..255) line)
 {
 	conn->_close=1;
 	return "ERROR! Unimplemented!\n";
@@ -78,7 +83,7 @@ string smtp(mapping(string:mixed) conn,string line)
 //Subnegotiation also elides the IAC SE, starting with just the SB and the content.
 //IAC doubling is handled automatically, in both directions. To send a Telnet sequence,
 //return an array equivalent to what would be received (including elisions).
-array(int)|string telnet(mapping(string:mixed) conn,string|array(int) line)
+array(int)|string(0..255) telnet(mapping(string:mixed) conn,string(0..255)|array(int) line)
 {
 	if (!line)
 	{
@@ -105,6 +110,34 @@ array(int)|string telnet(mapping(string:mixed) conn,string|array(int) line)
 	}
 	if (line=="quit") {conn->_close=1; return "Bye!\n";}
 	return "Unrecognized command.\n";
+}
+
+//Identical in structure to smtp, but its string arguments are Unicode, not bytes, strings.
+string text(mapping(string:mixed) conn,string line)
+{
+	if (!line) return 0;
+	if (line[-1]=='K') line=(string)(float)line+"°K"; //Cheat for code simplicity: "273.15 K" -> "273.15°K"
+	if (sscanf(line,"%f°%c",float deg,int type))
+	{
+		string desc = type=='K' ? sprintf("%.2f K",deg) : sprintf("%.2f °%c",deg,type);
+		//First, convert to Kelvin for consistency.
+		switch (type)
+		{
+			case 'K': break;
+			case 'C': deg+=273.15; break;
+			case 'F': deg+=459.67; //Which makes it Rankine, so fall through
+			case 'R': deg*=5.0/9; break;
+			default: return "Unrecognized temperature scale\n";
+		}
+		//Emit conversions to everything other than was originally entered
+		if (type!='K') G->send(conn,sprintf("%s = %.2f K\n",desc,deg));
+		if (type!='C') G->send(conn,sprintf("%s = %.2f °C\n",desc,deg-273.15));
+		if (type!='F') G->send(conn,sprintf("%s = %.2f °F\n",desc,deg*9/5-459.67));
+		if (type!='R') G->send(conn,sprintf("%s = %.2f °R\n",desc,deg*9/5));
+		return 0;
+	}
+	if (line=="quit") {conn->_close=1; return "Bye!\n";}
+	return "Whatever you say.\n";
 }
 
 void create()
