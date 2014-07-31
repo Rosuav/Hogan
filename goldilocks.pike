@@ -33,7 +33,7 @@ mapping(int:function) services=([
 	//lines, as many of them as are applicable.
 	1234|HOGAN_LINEBASED|HOGAN_UTF8:text,
 
-	//More flags will be added later, eg HTTP, UDP, DNS, SSL, UTF8, ACTIVE.
+	//More flags will be added later, eg HTTP, UDP, DNS, SSL, ACTIVE.
 	//Incompatible flag combinations will be reported to stderr and their portrefs
 	//ignored. On startup, this will prevent backend loop initiation.
 ]);
