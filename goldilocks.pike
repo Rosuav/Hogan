@@ -1,3 +1,4 @@
+#charset utf-8
 /*
 Template/example Goldilocks script, and self-documentation for same.
 

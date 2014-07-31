@@ -34,6 +34,7 @@ void socket_write(mapping(string:mixed) conn)
 void writeme(mapping(string:mixed) conn,string data)
 {
 	if (conn->_sendsuffix) data+=conn->_sendsuffix;
+	if (conn->_portref&HOGAN_UTF8) data=string_to_utf8(data);
 	conn->_writeme+=data;
 }
 
@@ -59,6 +60,7 @@ void send(mapping(string:mixed) conn,string|array(int) data)
 void socket_callback(mapping(string:mixed) conn,string|array(int) data)
 {
 	string writeme;
+	if (conn->_portref&HOGAN_UTF8) catch {data=utf8_to_string(data);}; //Attempt a UTF-8 decode; if it fails, fall back on Latin-1.
 	if (mixed ex=catch {writeme=goldi->services[conn->_portref](conn,data);})
 	{
 		werror("Error in port %s handler:\n%s\n",describe_portref(conn->_portref),describe_backtrace(ex));
