@@ -62,8 +62,7 @@ void socket_callback(mapping(string:mixed) conn,string|array(int) data)
 
 void socket_close(mapping(string:mixed) conn)
 {
-	conn->_closing=1;
-	socket_callback(conn,0); //Signal connection close with null data and _closing set
+	conn->_closing=1; socket_callback(conn,0); //Signal connection close with null data and _closing set
 	conn->_sock=0; //Break refloop
 }
 
