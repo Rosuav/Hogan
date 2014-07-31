@@ -100,5 +100,6 @@ int main(int argc,array(string) argv)
 	foreach (indices(this_program),string const) add_constant(const,this_program[const]); //Make constants available globally
 	if (bootstrap()) return 1; //Return value checked only on startup. On sighup, those errors won't be fatal.
 	signal(1,bootstrap); //On non-Unix platforms, this won't work.
+	werror("Ready and listening, pid %d - %s",getpid(),ctime(time()));
 	return -1;
 }
