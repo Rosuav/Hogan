@@ -22,9 +22,8 @@ mapping(int:function) services=([
 	//strings, and the two should be treated the same.
 	7007:echoer,
 
-	//Line-based input buffering will be much more useful, though. Note that this is
-	//input buffering, and does not affect output at all; most of these flags apply
-	//to both input and output.
+	//Line-based input buffering will be much more useful, though. This also sets the
+	//send suffix to "\n", though this can be overridden.
 	2525|HOGAN_LINEBASED:smtp,
 
 	//Telnet command processing can be layered on top of some forms of socket.
@@ -51,6 +50,7 @@ mapping(int:function) services=([
 //conn->_closing: Flag set to 1 when connection is closed; see usage example.
 //conn->_close: Set this to 1 to request that the connection be closed once all buffered
 //  data is written (including anything returned from this call)
+//conn->_sendsuffix: String appended to every string sent. Defaults to "" unless LINEBASED.
 //Keys in conn[] which do NOT begin with an underscore are entirely yours. Hogan will never
 //read or change them.
 //Any returned string will be sent to the client. You can also send to a conn explicitly:
@@ -73,11 +73,13 @@ string(0..255) echoer(mapping(string:mixed) conn,string(0..255) data)
 }
 
 //Line-based TCP socket. Similar to the above, but instead of getting arbitrary data, the
-//function receives one line (delimited by \n; any trailing \r will be stripped).
+//function receives one line (delimited by \n; any trailing \r will be stripped). By
+//default, sent strings have \n appended, though this can be changed (eg to \r\n) by
+//setting conn->_sendsuffix.
 string(0..255) smtp(mapping(string:mixed) conn,string(0..255) line)
 {
 	conn->_close=1;
-	return "ERROR! Unimplemented!\n";
+	return "ERROR! Unimplemented!";
 }
 
 //Telnet handling changes the function signature. Whenever a complete Telnet sequence is
@@ -89,7 +91,7 @@ array(int)|string(0..255) telnet(mapping(string:mixed) conn,string(0..255)|array
 {
 	if (!line)
 	{
-		if (!conn->_closing) {G->send(conn,({DO,TERMTYPE})); G->send(conn,({DO,NAWS})); return "Hello, and welcome!\n";}
+		if (!conn->_closing) {G->send(conn,({DO,TERMTYPE})); G->send(conn,({DO,NAWS})); return "Hello, and welcome!";}
 		return 0;
 	}
 	if (arrayp(line))
@@ -100,18 +102,18 @@ array(int)|string(0..255) telnet(mapping(string:mixed) conn,string(0..255)|array
 		//subnegotiation, the values are just numbers, so translating back to
 		//mnemonics is less than helpful. It's still true, just not helpful :)
 		//Special cases:
-		if (has_prefix((string)line,(string)({SB,TERMTYPE,IS}))) return sprintf("Telnet: IAC SB TERMTYPE IS %O\n",(string)line[3..]);
-		if (has_prefix((string)line,(string)({SB,NAWS}))) return sprintf("Telnet: IAC SB NAWS %dx%d\n",line[2]<<8|line[3],line[4]<<8|line[5]);
+		if (has_prefix((string)line,(string)({SB,TERMTYPE,IS}))) return sprintf("Telnet: IAC SB TERMTYPE IS %O",(string)line[3..]);
+		if (has_prefix((string)line,(string)({SB,NAWS}))) return sprintf("Telnet: IAC SB NAWS %dx%d",line[2]<<8|line[3],line[4]<<8|line[5]);
 		//Default case: Translate everything that can be translated
 		program hogan=object_program(G);
 		mapping(int:string) consts=([]);
 		foreach (indices(hogan),string c) if (intp(hogan[c])) consts[hogan[c]]=c;
 		array(string) result=allocate(sizeof(line));
 		foreach (line;int i;int val) result[i]=consts[val] || sprintf("0x%02X",val);
-		return "Telnet: IAC "+result*" "+"\n";
+		return "Telnet: IAC "+result*" ";
 	}
 	if (line=="quit") {conn->_close=1; return "Bye!\n";}
-	return "Unrecognized command.\n";
+	return "Unrecognized command.";
 }
 
 //Identical in structure to smtp, but its string arguments are Unicode, not bytes, strings.
@@ -129,17 +131,17 @@ string text(mapping(string:mixed) conn,string line)
 			case 'C': deg+=273.15; break;
 			case 'F': deg+=459.67; //Which makes it Rankine, so fall through
 			case 'R': deg*=5.0/9; break;
-			default: return "Unrecognized temperature scale\n";
+			default: return "Unrecognized temperature scale";
 		}
 		//Emit conversions to everything other than was originally entered
-		if (type!='K') G->send(conn,sprintf("%s = %.2f K\n",desc,deg));
-		if (type!='C') G->send(conn,sprintf("%s = %.2f °C\n",desc,deg-273.15));
-		if (type!='F') G->send(conn,sprintf("%s = %.2f °F\n",desc,deg*9/5-459.67));
-		if (type!='R') G->send(conn,sprintf("%s = %.2f °R\n",desc,deg*9/5));
+		if (type!='K') G->send(conn,sprintf("%s = %.2f K",desc,deg));
+		if (type!='C') G->send(conn,sprintf("%s = %.2f °C",desc,deg-273.15));
+		if (type!='F') G->send(conn,sprintf("%s = %.2f °F",desc,deg*9/5-459.67));
+		if (type!='R') G->send(conn,sprintf("%s = %.2f °R",desc,deg*9/5));
 		return 0;
 	}
-	if (line=="quit") {conn->_close=1; return "Bye!\n";}
-	return "Whatever you say.\n";
+	if (line=="quit") {conn->_close=1; return "Bye!";}
+	return "Whatever you say.";
 }
 
 void create()

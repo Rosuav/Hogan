@@ -31,6 +31,12 @@ void socket_write(mapping(string:mixed) conn)
 	}
 }
 
+void writeme(mapping(string:mixed) conn,string data)
+{
+	if (conn->_sendsuffix) data+=conn->_sendsuffix;
+	conn->_writeme+=data;
+}
+
 void send(mapping(string:mixed) conn,string|array(int) data)
 {
 	if (data)
@@ -43,9 +49,9 @@ void send(mapping(string:mixed) conn,string|array(int) data)
 				if (data[0]==SB) data+=(string)({IAC,SE});
 				conn->_writeme+="\xFF"+data;
 			}
-			else conn->_writeme+=replace(data,"\xFF","\xFF\xFF"); //Double any IACs in normal text
+			else writeme(conn,replace(data,"\xFF","\xFF\xFF")); //Double any IACs in normal text
 		}
-		else conn->_writeme+=data;
+		else writeme(conn,data);
 	}
 	socket_write(conn);
 }
@@ -128,6 +134,7 @@ void accept(int portref)
 		mapping(string:mixed) conn=(["_sock":sock,"_portref":portref,"_writeme":"","_data":"","_telnetbuf":""]);
 		sock->set_id(conn);
 		sock->set_nonblocking((portref&HOGAN_TELNET)?telnet_read:socket_read,socket_write,socket_close);
+		if (portref&HOGAN_LINEBASED) conn->_sendsuffix="\n";
 		socket_callback(conn,0); //Signal initialization with null data (and no _closing in conn)
 	}
 }
