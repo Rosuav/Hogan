@@ -46,7 +46,7 @@ void send(mapping(string:mixed) conn,string|array(int) data)
 		{
 			if (arrayp(data))
 			{
-				data=(string)replace(data,"\xFF","\xFF\xFF"); //Double any IACs embedded in a Telnet sequence
+				data=replace((string)data,"\xFF","\xFF\xFF"); //Double any IACs embedded in a Telnet sequence
 				if (data[0]==SB) data+=(string)({IAC,SE});
 				conn->_writeme+="\xFF"+data;
 			}
