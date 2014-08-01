@@ -40,7 +40,12 @@ mapping(int:function) services=([
 	//lines, as many of them as are applicable.
 	1234|HOGAN_LINEBASED|HOGAN_UTF8:text,
 
-	//More flags will be added later, eg HTTP, UDP, DNS, ACTIVE.
+	//UDP packets can be received on any given port. This does not conflict with a
+	//TCP socket on the same port number (for obvious reasons). UDP sockets cannot
+	//use most of the above flags, although UTF-8 decoding is supported.
+	5300|HOGAN_UDP:dnsdump,
+
+	//More flags will be added later, eg HTTP, DNS, ACTIVE.
 	//Incompatible flag combinations will be reported to stderr and their portrefs
 	//ignored. On startup, this will prevent backend loop initiation.
 ]);
@@ -148,6 +153,14 @@ string text(mapping(string:mixed) conn,string line)
 	}
 	if (line=="quit") {conn->_close=1; return "Bye!";}
 	return "Whatever you say.";
+}
+
+//UDP sockets have no concept of responses, so the return value is void.
+//The data mapping is exactly as provided by Stdio.UDP(), and has the data and
+//source ip/port for the packet.
+void dnsdump(int portref,mapping(string:int|string) data)
+{
+	write("DNS packet from %s : %d\n%O\n",data->ip,data->port,data->data);
 }
 
 void create()

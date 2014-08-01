@@ -7,12 +7,12 @@ object goldi=class{ }(); //Current goldilocks. Will be updated at any time (eg i
 
 mapping(int:object) socket=([]);
 
-constant HOGAN_PLAIN=0x00000,HOGAN_LINEBASED=0x10000,HOGAN_CONNTYPE=0xF0000; //Connection types (not bitwise, but portref&HOGAN_CONNTYPE will be equal to some value)
+constant HOGAN_PLAIN=0x00000,HOGAN_LINEBASED=0x10000,HOGAN_UDP=0x20000,HOGAN_CONNTYPE=0xF0000; //Connection types (not bitwise, but portref&HOGAN_CONNTYPE will be equal to some value)
 constant HOGAN_TELNET=0x100000,HOGAN_UTF8=0x200000,HOGAN_SSL=0x400000; //Additional flags which can be applied on top of a connection type
 string describe_conntype(int portref)
 {
 	return ({
-		([HOGAN_PLAIN:"PLAIN",HOGAN_LINEBASED:"LINE"])[portref&HOGAN_CONNTYPE]||sprintf("0x%X",portref&HOGAN_CONNTYPE),
+		([HOGAN_PLAIN:"PLAIN",HOGAN_LINEBASED:"LINE",HOGAN_UDP:"UDP"])[portref&HOGAN_CONNTYPE]||sprintf("0x%X",portref&HOGAN_CONNTYPE),
 		(portref&HOGAN_TELNET) && "TELNET",
 		(portref&HOGAN_UTF8) && "UTF8",
 		(portref&HOGAN_SSL) && "SSL",
@@ -144,6 +144,13 @@ void acceptloop(int portref)
 	while (object sock=socket[portref]->accept()) accept(sock,portref);
 }
 
+//Basically a closure, but this is simpler than lambdaing everything.
+class callback_caller(int portref) {void `()(mixed data)
+{
+	if (mixed ex=catch {goldi->services[portref](portref,data);})
+		werror("Error in port %s handler:\n%s\n",describe_portref(portref),describe_backtrace(ex));
+}}
+
 //Returns 1 on error, but that's ignored if it's a sighup.
 int bootstrap()
 {
@@ -180,6 +187,10 @@ int bootstrap()
 				sock->set_id(portref);
 				break;
 			}
+			case HOGAN_UDP:
+				if (portref&(HOGAN_SSL|HOGAN_TELNET)) {werror("Unsupported flag combination %s\n",describe_conntype(portref)); return 1;}
+				socket[portref]=Stdio.UDP()->bind(port,"::")->set_read_callback(callback_caller(portref));
+				break;
 			default: werror("Unknown connection type %d|%X\n",port,type); return 1;
 		}
 		socket[portref]=sock;
