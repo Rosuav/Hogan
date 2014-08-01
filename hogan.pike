@@ -12,7 +12,7 @@ constant HOGAN_TELNET=0x100000,HOGAN_UTF8=0x200000,HOGAN_SSL=0x400000; //Additio
 string describe_conntype(int portref)
 {
 	return ({
-		([HOGAN_PLAIN:"PLAIN",HOGAN_LINEBASED:"LINE"])[portref&HOGAN_CONNTYPE]||"",
+		([HOGAN_PLAIN:"PLAIN",HOGAN_LINEBASED:"LINE"])[portref&HOGAN_CONNTYPE]||sprintf("0x%X",portref&HOGAN_CONNTYPE),
 		(portref&HOGAN_TELNET) && "TELNET",
 		(portref&HOGAN_UTF8) && "UTF8",
 		(portref&HOGAN_SSL) && "SSL",
