@@ -189,7 +189,7 @@ int bootstrap()
 			}
 			case HOGAN_UDP:
 				if (portref&(HOGAN_SSL|HOGAN_TELNET)) {werror("Unsupported flag combination %s\n",describe_conntype(portref)); return 1;}
-				socket[portref]=Stdio.UDP()->bind(port,"::")->set_read_callback(callback_caller(portref));
+				sock=Stdio.UDP()->bind(port,"::")->set_read_callback(callback_caller(portref));
 				break;
 			default: werror("Unknown connection type %d|%X\n",port,type); return 1;
 		}
