@@ -14,7 +14,7 @@ string describe_conntype(int portref)
 	return ({
 		([HOGAN_PLAIN:"PLAIN",HOGAN_LINEBASED:"LINE"])[portref&HOGAN_CONNTYPE]||"",
 		(portref&HOGAN_TELNET) && "TELNET",
-		(portref&HOGAN_TELNET) && "UTF8",
+		(portref&HOGAN_UTF8) && "UTF8",
 	})*",";
 }
 string describe_portref(int portref) {return sprintf("%d [%s]",portref&65535,describe_conntype(portref));}
