@@ -8,13 +8,14 @@ object goldi=class{ }(); //Current goldilocks. Will be updated at any time (eg i
 mapping(int:object) socket=([]);
 
 constant HOGAN_PLAIN=0x00000,HOGAN_LINEBASED=0x10000,HOGAN_CONNTYPE=0xF0000; //Connection types (not bitwise, but portref&HOGAN_CONNTYPE will be equal to some value)
-constant HOGAN_TELNET=0x100000,HOGAN_UTF8=0x200000; //Additional flags which can be applied on top of a connection type
+constant HOGAN_TELNET=0x100000,HOGAN_UTF8=0x200000,HOGAN_SSL=0x400000; //Additional flags which can be applied on top of a connection type
 string describe_conntype(int portref)
 {
 	return ({
 		([HOGAN_PLAIN:"PLAIN",HOGAN_LINEBASED:"LINE"])[portref&HOGAN_CONNTYPE]||"",
 		(portref&HOGAN_TELNET) && "TELNET",
 		(portref&HOGAN_UTF8) && "UTF8",
+		(portref&HOGAN_SSL) && "SSL",
 	})*",";
 }
 string describe_portref(int portref) {return sprintf("%d [%s]",portref&65535,describe_conntype(portref));}
@@ -129,16 +130,18 @@ void telnet_read(mapping(string:mixed) conn,string data)
 	socket_read(conn,conn->_telnetbuf); conn->_telnetbuf="";
 }
 
-void accept(int portref)
+void accept(object sock,int portref)
 {
-	while (object sock=socket[portref]->accept())
-	{
-		mapping(string:mixed) conn=(["_sock":sock,"_portref":portref,"_writeme":"","_data":"","_telnetbuf":""]);
-		sock->set_id(conn);
-		sock->set_nonblocking((portref&HOGAN_TELNET)?telnet_read:socket_read,socket_write,socket_close);
-		if (portref&HOGAN_LINEBASED) conn->_sendsuffix="\n";
-		socket_callback(conn,0); //Signal initialization with null data (and no _closing in conn)
-	}
+	mapping(string:mixed) conn=(["_sock":sock,"_portref":portref,"_writeme":"","_data":"","_telnetbuf":""]);
+	sock->set_id(conn);
+	sock->set_nonblocking((portref&HOGAN_TELNET)?telnet_read:socket_read,socket_write,socket_close);
+	if (portref&HOGAN_LINEBASED) conn->_sendsuffix="\n";
+	socket_callback(conn,0); //Signal initialization with null data (and no _closing in conn)
+}
+
+void acceptloop(int portref)
+{
+	while (object sock=socket[portref]->accept()) accept(sock,portref);
 }
 
 //Returns 1 on error, but that's ignored if it's a sighup.
@@ -154,8 +157,22 @@ int bootstrap()
 	foreach (indices(goldi->services)-indices(socket),int portref)
 	{
 		int port=portref&65535,type=portref&HOGAN_CONNTYPE;
-		object sock=Stdio.Port();
-		if (!sock->bind(port,accept,"::")) {werror("Error binding to %s: %s [%d]\n",describe_portref(port),strerror(sock->errno()),sock->errno()); return 1;}
+		object sock;
+		function acceptsock=acceptloop;
+		if (portref&HOGAN_SSL)
+		{
+			//TODO: Guard with #if to handle other Pike versions and/or absence of SSL support
+			//(If no SSL support at all, this MUST throw an error rather than falling back on non-SSL.)
+			#if 0
+			//Stub, needs expanding (eg key/cert)
+			sock=SSL.Port(SSL.Context()); acceptsock=accept;
+			#else
+			werror("Unsupported flag combination %s - SSL unavailable\n",describe_conntype(portref));
+			return 1;
+			#endif
+		}
+		else sock=Stdio.Port();
+		if (!sock->bind(port,acceptsock,"::")) {werror("Error binding to %s: %s [%d]\n",describe_portref(port),strerror(sock->errno()),sock->errno()); return 1;}
 		sock->set_id(portref);
 		socket[portref]=sock;
 		write("Bound to %s.\n",describe_portref(portref));

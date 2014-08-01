@@ -30,12 +30,17 @@ mapping(int:function) services=([
 	//Telnet command processing can be layered on top of some forms of socket.
 	2323|HOGAN_LINEBASED|HOGAN_TELNET:telnet,
 
+	//Socket connections can be encrypted using SSL/TLS, transparently to the code.
+	//It's perfectly conceivable to use the same callback for the non-SSL and SSL
+	//ports offering the same service (eg 143 and 993|HOGAN_SSL), easily checking
+	//conn->_portref&HOGAN_SSL to distinguish when necessary (eg to deny plaintext
+	//authentication when the connection's not encrypted), otherwise sharing code.
 	//UTF-8 encoding and decoding can be layered on top of sockets, too. Note that
-	//the layers are in strict sequence; Telnet, then UTF-8, then splitting into
+	//the layers are in sequence; SSL, then Telnet, then UTF-8, then splitting into
 	//lines, as many of them as are applicable.
 	1234|HOGAN_LINEBASED|HOGAN_UTF8:text,
 
-	//More flags will be added later, eg HTTP, UDP, DNS, SSL, ACTIVE.
+	//More flags will be added later, eg HTTP, UDP, DNS, ACTIVE.
 	//Incompatible flag combinations will be reported to stderr and their portrefs
 	//ignored. On startup, this will prevent backend loop initiation.
 ]);
