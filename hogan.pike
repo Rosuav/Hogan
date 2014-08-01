@@ -172,7 +172,7 @@ int bootstrap()
 			#endif
 		}
 		else sock=Stdio.Port();
-		if (!sock->bind(port,acceptsock,"::")) {werror("Error binding to %s: %s [%d]\n",describe_portref(port),strerror(sock->errno()),sock->errno()); return 1;}
+		if (!sock->bind(port,acceptsock,"::")) {werror("Error binding to %s: %s [%d]\n",describe_portref(portref),strerror(sock->errno()),sock->errno()); return 1;}
 		sock->set_id(portref);
 		socket[portref]=sock;
 		write("Bound to %s.\n",describe_portref(portref));
