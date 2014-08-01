@@ -45,7 +45,13 @@ mapping(int:function) services=([
 	//use most of the above flags, although UTF-8 decoding is supported.
 	5300|HOGAN_UDP:dnsdump,
 
-	//More flags will be added later, eg HTTP, DNS, ACTIVE.
+	//Full DNS protocolling can be handled properly, which is a lot easier than the
+	//basic UDP interface. If the lower-level support is available, this will be a
+	//dual UDP/TCP server; otherwise, it'll be pure UDP, with the limitations that
+	//that entails.
+	5301|HOGAN_DNS:dns,
+
+	//More flags will be added later, eg HTTP, ACTIVE.
 	//Incompatible flag combinations will be reported to stderr and their portrefs
 	//ignored. On startup, this will prevent backend loop initiation.
 ]);
@@ -161,6 +167,24 @@ string text(mapping(string:mixed) conn,string line)
 void dnsdump(int portref,mapping(string:int|string) data)
 {
 	write("DNS packet from %s : %d\n%O\n",data->ip,data->port,data->data);
+}
+
+//Apart from portref, the args are exactly as per Protocols.DNS.server()->reply_query(),
+//as is the return value and callback handling. Check the docs directly. The parsed
+//query is best documented by Protocols.DNS.protocol()->decode_entries() and by the DNS
+//RFCs, which you'll probably need to read up on anyway.
+mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb)
+{
+	mapping q=query->qd[0];
+	//RFC 1034 stipulates that the domain MUST be lowercased before comparing.
+	//However, some DNS resolvers add entropy by randomizing case, and expect the response
+	//to be in the original query's case. So if you get a query for "gOLdiLocKS.exaMPlE",
+	//it must be responded to as if it were "goldilocks.example", but ideally, it should
+	//have the response quote back "gOLdiLocKS.exaMPlE".
+	string name=lower_case(q->name);
+	if (q->cl==Protocols.DNS.C_IN && q->type==Protocols.DNS.T_A && name=="goldilocks.example")
+		return (["an":(["cl":q->cl,"ttl":60,"type":q->type,"name":q->name,"a":"127.0.0.1"])]);
+	return (["rcode":Protocols.DNS.REFUSED]); //There are many possible ways to reject DNS queries, this is just one of them.
 }
 
 void create()

@@ -7,12 +7,12 @@ object goldi=class{ }(); //Current goldilocks. Will be updated at any time (eg i
 
 mapping(int:object) socket=([]);
 
-constant HOGAN_PLAIN=0x00000,HOGAN_LINEBASED=0x10000,HOGAN_UDP=0x20000,HOGAN_CONNTYPE=0xF0000; //Connection types (not bitwise, but portref&HOGAN_CONNTYPE will be equal to some value)
+constant HOGAN_PLAIN=0x00000,HOGAN_LINEBASED=0x10000,HOGAN_UDP=0x20000,HOGAN_DNS=0x30000,HOGAN_CONNTYPE=0xF0000; //Connection types (not bitwise, but portref&HOGAN_CONNTYPE will be equal to some value)
 constant HOGAN_TELNET=0x100000,HOGAN_UTF8=0x200000,HOGAN_SSL=0x400000; //Additional flags which can be applied on top of a connection type
 string describe_conntype(int portref)
 {
 	return ({
-		([HOGAN_PLAIN:"PLAIN",HOGAN_LINEBASED:"LINE",HOGAN_UDP:"UDP"])[portref&HOGAN_CONNTYPE]||sprintf("0x%X",portref&HOGAN_CONNTYPE),
+		([HOGAN_PLAIN:"PLAIN",HOGAN_LINEBASED:"LINE",HOGAN_UDP:"UDP",HOGAN_DNS:"DNS"])[portref&HOGAN_CONNTYPE]||sprintf("0x%X",portref&HOGAN_CONNTYPE),
 		(portref&HOGAN_TELNET) && "TELNET",
 		(portref&HOGAN_UTF8) && "UTF8",
 		(portref&HOGAN_SSL) && "SSL",
@@ -151,6 +151,18 @@ class callback_caller(int portref) {void `()(mixed data)
 		werror("Error in port %s handler:\n%s\n",describe_portref(portref),describe_backtrace(ex));
 }}
 
+class dns(int portref)
+{
+	#if constant(Protocols.DNS.dual_server)
+	inherit Protocols.DNS.dual_server;
+	#else
+	inherit Protocols.DNS.server;
+	#endif
+	void create() {::create(portref&65535);}
+	mapping reply_query(mixed ... args) {return goldi->services[portref](portref,@args);}
+	void close() {destruct();}
+}
+
 //Returns 1 on error, but that's ignored if it's a sighup.
 int bootstrap()
 {
@@ -190,6 +202,13 @@ int bootstrap()
 			case HOGAN_UDP:
 				if (portref&(HOGAN_SSL|HOGAN_TELNET)) {werror("Unsupported flag combination %s\n",describe_conntype(portref)); return 1;}
 				sock=Stdio.UDP()->bind(port,"::")->set_read_callback(callback_caller(portref));
+				break;
+			case HOGAN_DNS:
+				//Note that while DNS over SSL makes little sense with UDP, it is theoretically
+				//possible over TCP. But I've never seen anyone do it; DNSSEC is more effective
+				//and much better suited to the protocol.
+				if (portref&(HOGAN_SSL|HOGAN_TELNET|HOGAN_UTF8)) {werror("Unsupported flag combination %s\n",describe_conntype(portref)); return 1;}
+				sock=dns(portref);
 				break;
 			default: werror("Unknown connection type %d|%X\n",port,type); return 1;
 		}
