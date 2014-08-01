@@ -158,22 +158,30 @@ int bootstrap()
 	{
 		int port=portref&65535,type=portref&HOGAN_CONNTYPE;
 		object sock;
-		function acceptsock=acceptloop;
-		if (portref&HOGAN_SSL)
+		switch (type)
 		{
-			//TODO: Guard with #if to handle other Pike versions and/or absence of SSL support
-			//(If no SSL support at all, this MUST throw an error rather than falling back on non-SSL.)
-			#if 0
-			//Stub, needs expanding (eg key/cert)
-			sock=SSL.Port(SSL.Context()); acceptsock=accept;
-			#else
-			werror("Unsupported flag combination %s - SSL unavailable\n",describe_conntype(portref));
-			return 1;
-			#endif
+			case HOGAN_PLAIN: case HOGAN_LINEBASED:
+			{
+				function acceptsock=acceptloop;
+				if (portref&HOGAN_SSL)
+				{
+					//TODO: Guard with #if to handle other Pike versions and/or absence of SSL support
+					//(If no SSL support at all, this MUST throw an error rather than falling back on non-SSL.)
+					#if 0
+					//Stub, needs expanding (eg key/cert)
+					sock=SSL.Port(SSL.Context()); acceptsock=accept;
+					#else
+					werror("Unsupported flag combination %s - SSL unavailable\n",describe_conntype(portref));
+					return 1;
+					#endif
+				}
+				else sock=Stdio.Port();
+				if (!sock->bind(port,acceptsock,"::")) {werror("Error binding to %s: %s [%d]\n",describe_portref(portref),strerror(sock->errno()),sock->errno()); return 1;}
+				sock->set_id(portref);
+				break;
+			}
+			default: werror("Unknown connection type %d|%X\n",port,type); return 1;
 		}
-		else sock=Stdio.Port();
-		if (!sock->bind(port,acceptsock,"::")) {werror("Error binding to %s: %s [%d]\n",describe_portref(portref),strerror(sock->errno()),sock->errno()); return 1;}
-		sock->set_id(portref);
 		socket[portref]=sock;
 		write("Bound to %s.\n",describe_portref(portref));
 	}
