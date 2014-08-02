@@ -246,7 +246,8 @@ int main(int argc,array(string) argv)
 	add_constant("G",this);
 	if (argc<2) exit(1,"USAGE: pike %s some_file.pike\nSee goldilocks.pike for an example file to invoke.\n",argv[0]);
 	goldiname=argv[1];
-	foreach (indices(this_program),string const) add_constant(const,this_program[const]); //Make constants available globally
+	program me=this_program; //Note that this_program[const] doesn't work in old Pikes, so assign it to a temporary.
+	foreach (indices(me),string const) add_constant(const,me[const]); //Make constants available globally
 	if (bootstrap()) return 1; //Return value checked only on startup. On sighup, those errors won't be fatal.
 	signal(1,bootstrap); //On non-Unix platforms, this won't work.
 	werror("Ready and listening, pid %d - %s",getpid(),ctime(time()));
