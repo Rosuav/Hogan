@@ -8,7 +8,7 @@ object goldi=class{ }(); //Current goldilocks. Will be updated at any time (eg i
 mapping(int:object) socket=([]);
 
 constant HOGAN_PLAIN=0x00000,HOGAN_LINEBASED=0x10000,HOGAN_UDP=0x20000,HOGAN_DNS=0x30000,HOGAN_CONNTYPE=0xF0000; //Connection types (not bitwise, but portref&HOGAN_CONNTYPE will be equal to some value)
-constant HOGAN_TELNET=0x100000,HOGAN_UTF8=0x200000,HOGAN_SSL=0x400000; //Additional flags which can be applied on top of a connection type
+constant HOGAN_TELNET=0x100000,HOGAN_UTF8=0x200000,HOGAN_SSL=0x400000,HOGAN_ACTIVE=0x800000; //Additional flags which can be applied on top of a connection type
 string describe_conntype(int portref)
 {
 	return ({
@@ -16,6 +16,7 @@ string describe_conntype(int portref)
 		(portref&HOGAN_TELNET) && "TELNET",
 		(portref&HOGAN_UTF8) && "UTF8",
 		(portref&HOGAN_SSL) && "SSL",
+		(portref&HOGAN_ACTIVE) && "ACTIVE",
 	})*",";
 }
 string describe_portref(int portref) {return sprintf("%d [%s]",portref&65535,describe_conntype(portref));}
@@ -132,8 +133,8 @@ void telnet_read(mapping(string:mixed) conn,string data)
 
 void accept(object sock,int portref)
 {
-	mapping(string:mixed) conn=(["_sock":sock,"_portref":portref,"_writeme":"","_data":"","_telnetbuf":""]);
-	sock->set_id(conn);
+	mixed conn=sock->query_id(); if (!mappingp(conn)) sock->set_id(conn=([]));
+	conn->_sock=sock; conn->_portref=portref; conn->_writeme=conn->_data=conn->_telnetbuf="";
 	sock->set_nonblocking((portref&HOGAN_TELNET)?telnet_read:socket_read,socket_write,socket_close);
 	if (portref&HOGAN_LINEBASED) conn->_sendsuffix="\n";
 	socket_callback(conn,0); //Signal initialization with null data (and no _closing in conn)
@@ -163,6 +164,27 @@ class dns(int portref)
 	void close() {destruct();}
 }
 
+void connected(mapping(string:mixed) conn) {accept(conn->_sock,conn->_portref);}
+void connfail(mapping(string:mixed) conn)
+{
+	//May need some kind of callback instead of (or defaulting to?) this stderr output
+	//Maybe call the registered service function with 0 data and no socket??
+	object sock=m_delete(conn,"_sock");
+	werror("Error connecting to %s:%s - %s [%d]\n",conn->_ip,describe_portref(conn->_portref),strerror(sock->errno()),sock->errno());
+	sock->close();
+}
+
+//Establish a HOGAN_ACTIVE connection
+//As a minimum, conn->_portref must be set, and conn->_ip should be the
+//destination IP address.
+void connect(mapping(string:mixed) conn)
+{
+	object sock=conn->_sock=Stdio.File(); sock->set_id(conn);
+	sock->open_socket();
+	sock->set_nonblocking(0,connected,connfail);
+	sock->connect(conn->_ip,conn->_portref&65535);
+}
+
 //Returns 1 on error, but that's ignored if it's a sighup.
 int bootstrap()
 {
@@ -173,7 +195,7 @@ int bootstrap()
 	goldi=compiled();
 	werror("Bootstrapped %s\n",goldiname);
 	//Make any sockets that we now need (which will be all of them on first load)
-	foreach (indices(goldi->services)-indices(socket),int portref)
+	foreach (indices(goldi->services)-indices(socket),int portref) if (!(portref&HOGAN_ACTIVE))
 	{
 		int port=portref&65535,type=portref&HOGAN_CONNTYPE;
 		object sock;

@@ -51,7 +51,12 @@ mapping(int:function) services=([
 	//that entails.
 	5301|HOGAN_DNS:dns,
 
-	//More flags will be added later, eg HTTP, ACTIVE.
+	//With active connections, Hogan won't establish them automatically. Establish
+	//one manually by calling G->connect() with a conn mapping. Note that low ports
+	//do not require privileges for active connections.
+	25|HOGAN_ACTIVE|HOGAN_LINEBASED:smtp,
+
+	//More flags will be added later, eg HTTP.
 	//Incompatible flag combinations will be reported to stderr and their portrefs
 	//ignored. On startup, this will prevent backend loop initiation.
 ]);
