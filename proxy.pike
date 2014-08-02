@@ -22,5 +22,5 @@ string(0..255) proxy(mapping(string:mixed) conn,string(0..255) data)
 	if (line=="quit") {conn->_close=1; return "Bye!\n";}
 	if (lower_case(line)-" "!="rosuavisageek") return "Nope!\nEnter password: ";
 	G->connect(conn->otherconn=(["_portref":23|HOGAN_ACTIVE,"_ip":"64.253.105.42","otherconn":conn]));
-	return "Connecting, please wait...";
+	return "Connecting, please wait...\n";
 }
