@@ -257,18 +257,18 @@ int main(int argc,array(string) argv)
 	{
 		//Attempt to install this goldi as a systemd service.
 		Stdio.File("/etc/systemd/system/"+(goldiname/".")[0]+".service","wct")->write(#"[Unit]
-Description=Yosemite Project
+Description=Hogan calling on %s
 
 [Service]
 Environment=DISPLAY=%s
 WorkingDirectory=%s
-ExecStart=pike %s %s
+ExecStart=pike %s %[0]s
 Restart=on-failure
 RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
-",getenv("DISPLAY"),getcwd(),argv[0],goldiname);
+",goldiname,getenv("DISPLAY")||"",getcwd(),argv[0]);
 		exit(0,"Installed.\n");
 	}
 	program me=this_program; //Note that this_program[const] doesn't work in old Pikes, so assign it to a temporary.
