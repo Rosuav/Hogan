@@ -1,6 +1,7 @@
 #!/usr/bin/env pike
 
 mapping(string:mixed) G=([]); //Generic globally accessible data. Accessible everywhere as G->G->whatever.
+mapping(string:string|int(1..1)) options=([]); //Parsed options from argv[]: "--foo=bar" becomes options->foo="bar", and "--foo" becomes options->foo=1
 
 string goldiname; //File name of goldilocks - set on startup, not normally changed
 object goldi=class{ }(); //Current goldilocks. Will be updated at any time (eg in response to SIGHUP).
@@ -244,8 +245,32 @@ int bootstrap()
 int main(int argc,array(string) argv)
 {
 	add_constant("G",this);
-	if (argc<2) exit(1,"USAGE: pike %s some_file.pike\nSee goldilocks.pike for an example file to invoke.\n",argv[0]);
-	goldiname=argv[1];
+	foreach (argv[1..],string arg)
+	{
+		if (arg=="") ;
+		else if (sscanf(arg,"--%s=%s",string opt,string val)) options[opt]=val;
+		else if (sscanf(arg,"--%s",string opt)) options[opt]=1;
+		else if (!goldiname) goldiname=arg;
+	}
+	if (!goldiname) exit(1,"USAGE: pike %s some_file.pike\nSee goldilocks.pike for an example file to invoke.\n",argv[0]);
+	if (options->install)
+	{
+		//Attempt to install this goldi as a systemd service.
+		Stdio.File("/etc/systemd/system/"+(goldiname/".")[0]+".service","wct")->write(#"[Unit]
+Description=Yosemite Project
+
+[Service]
+Environment=DISPLAY=%s
+WorkingDirectory=%s
+ExecStart=pike %s %s
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+",getenv("DISPLAY"),getcwd(),argv[0],goldiname);
+		exit(0,"Installed.\n");
+	}
 	program me=this_program; //Note that this_program[const] doesn't work in old Pikes, so assign it to a temporary.
 	foreach (indices(me),string const) add_constant(const,me[const]); //Make constants available globally
 	if (bootstrap()) return 1; //Return value checked only on startup. On sighup, those errors won't be fatal.
