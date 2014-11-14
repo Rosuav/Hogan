@@ -253,6 +253,7 @@ int main(int argc,array(string) argv)
 		else if (!goldiname) goldiname=arg;
 	}
 	if (!goldiname) exit(1,"USAGE: pike %s some_file.pike\nSee goldilocks.pike for an example file to invoke.\n",argv[0]);
+	if (!file_stat(goldiname) && file_stat(goldiname+".pike")) goldiname+=".pike";
 	if (options->install)
 	{
 		//Attempt to install this goldi as a systemd service.
