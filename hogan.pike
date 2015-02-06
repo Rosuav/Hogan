@@ -22,11 +22,29 @@ string describe_conntype(int portref)
 }
 string describe_portref(int portref) {return sprintf("%d [%s]",portref&65535,describe_conntype(portref));}
 
+//If conn->_writeme exceeds this many bytes, conn->_written will be used.
+//Also, any time conn->_written exceeds this much, it'll be trimmed from _writeme.
+//Not set by default as it can impact performance on the common case; the best
+//way to use this is: pike -DWRITE_CHUNK=1024*1024*16 hogan somefile.pike
+//Probably not needed unless you're writing megs and megs of stuff all at once
+//(hence the 16MB example here); you'll know you need this if you see the Hogan
+//process become CPU-bound doing the O(N**2) processing needed to send data around.
+//#define WRITE_CHUNK 1024*1024*16
+
 void socket_write(mapping(string:mixed) conn)
 {
 	if (!conn->_sock) return;
 	if (conn->_writeme!="" && !conn->_closing && conn->_sock && conn->_sock->is_open())
+	{
+		#ifdef WRITE_CHUNK
+		conn->_written+=conn->_sock->write(conn->_writeme[conn->_written..conn->_written+WRITE_CHUNK]);
+		//Trim from _writeme when it becomes completely empty, or when we've written a full chunk.
+		if (conn->_written==sizeof(conn->_writeme)) {conn->_written=0; conn->_writeme="";}
+		else if (conn->_written>=WRITE_CHUNK) {conn->_writeme=conn->_writeme[conn->_written..]; conn->_written=0;}
+		#else
 		conn->_writeme=conn->_writeme[conn->_sock->write(conn->_writeme)..];
+		#endif
+	}
 	if (conn->_writeme=="" && conn->_close && !conn->_closing)
 	{
 		conn->_sock->close();

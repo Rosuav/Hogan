@@ -69,6 +69,8 @@ mapping(int:function) services=([
 //conn->_sock: Stdio.File for the connected socket (don't read/write directly)
 //conn->_portref: Port reference as used in services[]
 //conn->_writeme: Buffered data for writing
+//conn->_written: Number of bytes of _writeme already written. Used only if _writeme is
+//  more than WRITE_CHUNK long (and ergo only if WRITE_CHUNK is set).
 //conn->_closing: Flag set to 1 when connection is closed; see usage example.
 //conn->_close: Set this to 1 to request that the connection be closed once all buffered
 //  data is written (including anything returned from this call)
