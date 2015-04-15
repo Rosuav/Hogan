@@ -189,6 +189,11 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 	//it must be responded to as if it were "goldilocks.example", but ideally, it should
 	//have the response quote back "gOLdiLocKS.exaMPlE".
 	string name=lower_case(q->name);
+	write("DNS request: %s %s %s\n",name,
+		#define T(x) Protocols.DNS.T_##x:#x
+		([T(A), T(AAAA), T(MX), T(NS), T(PTR), T(SOA), T(TXT), T(SPF)])[q->type] || (string)q->type,
+		([Protocols.DNS.C_IN:"IN"])[q->cl] || (string)q->cl,
+	);
 	if (q->cl==Protocols.DNS.C_IN && q->type==Protocols.DNS.T_A && name=="goldilocks.example")
 		return (["an":(["cl":q->cl,"ttl":60,"type":q->type,"name":q->name,"a":"127.0.0.1"])]);
 	return (["rcode":Protocols.DNS.REFUSED]); //There are many possible ways to reject DNS queries, this is just one of them.
