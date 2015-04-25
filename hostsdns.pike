@@ -1,4 +1,7 @@
 //Demo of a marginally useful DNS server: it looks up your /etc/hosts and returns results from it.
+//This isn't terribly useful (if you actually want to make this kind of thing public, you probably
+//want BIND9 rather than something this simple), and for simplicity's sake it doesn't return any
+//SOA or NS records, but it's a demo of how easy DNS handling can be.
 mapping(int:function) services=([53|HOGAN_DNS:dns]);
 
 constant TTL=60; //Tune according to your requirements. The hosts file doesn't have TTLs, obviously.
