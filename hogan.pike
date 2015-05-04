@@ -299,7 +299,7 @@ WantedBy=multi-user.target
 		exit(0,"Installed as %s and started.\n",svc);
 	}
 	program me=this_program; //Note that this_program[const] doesn't work in old Pikes, so assign it to a temporary.
-	foreach (indices(me),string const) add_constant(const,me[const]); //Make constants available globally
+	foreach (indices(me),string key) add_constant(key,me[key]); //Make constants available globally
 	if (bootstrap()) return 1; //Return value checked only on startup. On sighup, those errors won't be fatal.
 	signal(1,bootstrap); //On non-Unix platforms, this won't work.
 	werror("Ready and listening, pid %d - %s",getpid(),ctime(time()));
