@@ -136,6 +136,13 @@ array(int)|string(0..255) telnet(mapping(string:mixed) conn,string(0..255)|array
 		foreach (line;int i;int val) result[i]=consts[val] || sprintf("0x%02X",val);
 		return "Telnet: IAC "+result*" ";
 	}
+	#if constant(Stdio.IPTOS_LOWDELAY)
+	if (int toscode=sscanf(line,"tos %s",string tos) && Stdio["IPTOS_"+upper_case(tos)])
+	{
+		conn->_sock->setsockopt(Stdio.IPPROTO_IP,Stdio.IP_TOS,toscode);
+		return "Type of service set to "+tos;
+	}
+	#endif
 	if (line=="quit") {conn->_close=1; return "Bye!\n";}
 	return "Unrecognized command.";
 }
