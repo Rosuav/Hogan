@@ -209,4 +209,5 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 void create()
 {
 	//Called on startup and on any sighup. Any necessary initialization can be done here.
+	//Can be omitted if not needed.
 }
