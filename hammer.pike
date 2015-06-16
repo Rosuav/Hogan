@@ -4,14 +4,14 @@ mapping(int:function) services=([0|HOGAN_UDP:hammertime]);
 mapping(int:array(int|string)) awaiting=([]);
 object decrypt;
 
-//Server: Decryption keys, timing info, database connection
+//Server: Decryption keys, database connection
 mapping(string:object) keys=([]);
 int timing=0,packets;
-System.Timer starttime;
 object db=Sql.Sql("pgsql://hammer:hammer@localhost/hammer");
 
-//Both: Encryption key (parsed from the private key file)
+//Both: Encryption key (parsed from the private key file), timing info
 object encrypt;
+System.Timer starttime;
 
 //Sign and send a packet
 void send_packet(string data,string|void ip,int|void port)
@@ -35,6 +35,7 @@ void hammertime(int portref,mapping(string:int|string) data)
 	if (sscanf(body,"OK: %d",int id)) //Client received a server response.
 	{
 		m_delete(awaiting,id);
+		if (timing==1) exit(0,"Response in %f seconds.\n",starttime->peek());
 		if (!sizeof(awaiting)) {send_packet("## End ##"); exit(0,"All done.\n");} //Fire-and-forget the final notification.
 		return;
 	}
@@ -81,13 +82,17 @@ object load_public_key(string fn)
 	return Standards.PKCS.RSA.parse_public_key("0\202\1\n\2\202"+key[20..]+"\2\3\1\0\1");
 }
 
-void send_all()
+//packet_count > 1: Throughput test - send a bunch of packets, and let the server time it.
+//packet_count == 1: Response time test - send one packet, and see how quickly we get back a response.
+void send_all(int packet_count)
 {
 	//The payload would encode all sorts of useful information, but for now, let's
 	//just have a fairly fixed bit of nothing.
 	int id=array_sscanf(random_string(4),"%4c")[0]; //Auto-incrementing ID... with a random start.
-	if (!timing) {timing=10; send_packet("## Start ##");}
-	for (int i=0;i<200;++i)
+	timing=packet_count;
+	if (timing==1) starttime=System.Timer();
+	else send_packet("## Start ##");
+	for (int i=0;i<packet_count;++i)
 	{
 		++id;
 		awaiting[id]=({0, sprintf("Inc %d: Hello, world! ID %d, Timestamp %d, ctime %s",random(100)+1,id,time(),ctime(time()))});
@@ -114,5 +119,6 @@ void create()
 	//Else client mode.
 	encrypt=load_private_key("demo_key");
 	decrypt=load_public_key("server_key.pub");
-	call_out(send_all,0.01);
+	if (G->options->throughput) call_out(send_all,0.01,200);
+	else call_out(send_all,0.01,1);
 }
