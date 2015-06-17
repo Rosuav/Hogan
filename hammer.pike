@@ -60,7 +60,7 @@ void hammertime(int portref,mapping(string:int|string) data)
 	{
 		db->query("begin");
 		db->query("update hammer set count=count+1 where id=%d", inc);
-		db->query("end");
+		db->query("commit");
 		send_packet("OK: "+id, data->ip, data->port);
 	}
 }
