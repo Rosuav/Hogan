@@ -162,7 +162,7 @@ string text(mapping(string:mixed) conn,string line)
 			case 'C': deg+=273.15; break;
 			case 'F': deg+=459.67; //Which makes it Rankine, so fall through
 			case 'R': deg*=5.0/9; break;
-			default: return "Unrecognized temperature scale";
+			default: return "Unrecognized temperature scale.";
 		}
 		//Emit conversions to everything other than was originally entered
 		if (type!='K') G->send(conn,sprintf("%s = %.2f K",desc,deg));
