@@ -204,6 +204,7 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 	if (q->cl==Protocols.DNS.C_IN && q->type==Protocols.DNS.T_A && name=="goldilocks.example")
 		return (["an":(["cl":q->cl,"ttl":60,"type":q->type,"name":q->name,"a":"127.0.0.1"])]);
 	if (q->cl==Protocols.DNS.C_IN && q->type==Protocols.DNS.T_TXT && name=="goldilocks.example")
+		//Note that TXT records don't have to be "text" in any meaningful sense - they're actually binary.
 		return (["an":(["cl":q->cl,"ttl":60,"type":q->type,"name":q->name,"txt":random_string(32)])]);
 	return (["rcode":Protocols.DNS.REFUSED]); //There are many possible ways to reject DNS queries, this is just one of them.
 }
