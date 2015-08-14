@@ -56,3 +56,12 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 	}
 	return (["rcode":Protocols.DNS.REFUSED]); //There are many possible ways to reject DNS queries, this is just one of them.
 }
+
+void drop_perms()
+{
+	setgid(1000);
+	setuid(1000);
+	write("Permissions dropped - now u%d/%d g%d/%d\n",getuid(),geteuid(),getgid(),getegid());
+}
+
+void create() {call_out(drop_perms,0);}
