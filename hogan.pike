@@ -29,14 +29,19 @@ string describe_portref(int portref) {return sprintf("%d [%s]",portref&65535,des
 //Probably not needed unless you're writing megs and megs of stuff all at once
 //(hence the 16MB example here); you'll know you need this if you see the Hogan
 //process become CPU-bound doing the O(N**2) processing needed to send data around.
+//Note that this is unnecessary and ignored if Stdio.Buffer is available; the most
+//efficient behaviour will be automatically selected on recent-enough Pikes.
 //#define WRITE_CHUNK 1024*1024*16
 
 void socket_write(mapping(string:mixed) conn)
 {
 	if (!conn->_sock) return;
-	if (conn->_writeme!="" && !conn->_closing && conn->_sock && conn->_sock->is_open())
+	if (sizeof(conn->_writeme) && !conn->_closing && conn->_sock && conn->_sock->is_open())
 	{
-		#ifdef WRITE_CHUNK
+		#if constant(Stdio.Buffer)
+		//Attempt to write as much as possible, and trim it from the buffer.
+		conn->_writeme->output_to(conn->_sock);
+		#elif defined(WRITE_CHUNK)
 		conn->_written+=conn->_sock->write(conn->_writeme[conn->_written..conn->_written+WRITE_CHUNK]);
 		//Trim from _writeme when it becomes completely empty, or when we've written a full chunk.
 		if (conn->_written==sizeof(conn->_writeme)) {conn->_written=0; conn->_writeme="";}
@@ -45,7 +50,7 @@ void socket_write(mapping(string:mixed) conn)
 		conn->_writeme=conn->_writeme[conn->_sock->write(conn->_writeme)..];
 		#endif
 	}
-	if (conn->_writeme=="" && conn->_close && !conn->_closing)
+	if (!sizeof(conn->_writeme) && conn->_close && !conn->_closing)
 	{
 		conn->_sock->close();
 		socket_close(conn);
@@ -56,7 +61,11 @@ void writeme(mapping(string:mixed) conn,string data)
 {
 	if (conn->_sendsuffix) data+=conn->_sendsuffix;
 	if (conn->_portref&HOGAN_UTF8) data=string_to_utf8(data);
+	#if constant(Stdio.Buffer)
+	conn->_writeme->add(data);
+	#else
 	conn->_writeme+=data;
+	#endif
 }
 
 void send(mapping(string:mixed) conn,string|array(int) data)
@@ -69,7 +78,11 @@ void send(mapping(string:mixed) conn,string|array(int) data)
 			{
 				data=replace((string)data,"\xFF","\xFF\xFF"); //Double any IACs embedded in a Telnet sequence
 				if (data[0]==SB) data+=(string)({IAC,SE});
+				#if constant(Stdio.Buffer)
+				conn->_writeme->add(({255,data}));
+				#else
 				conn->_writeme+="\xFF"+data;
+				#endif
 			}
 			else writeme(conn,replace(data,"\xFF","\xFF\xFF")); //Double any IACs in normal text
 		}
@@ -153,7 +166,12 @@ void telnet_read(mapping(string:mixed) conn,string data)
 void accept(object sock,int portref)
 {
 	mixed conn=sock->query_id(); if (!mappingp(conn)) sock->set_id(conn=([]));
-	conn->_sock=sock; conn->_portref=portref; conn->_writeme=conn->_data=conn->_telnetbuf="";
+	conn->_sock=sock; conn->_portref=portref; conn->_data=conn->_telnetbuf="";
+	#if constant(Stdio.Buffer)
+	conn->_writeme=Stdio.Buffer();
+	#else
+	conn->_writeme="";
+	#endif
 	sock->set_nonblocking((portref&HOGAN_TELNET)?telnet_read:socket_read,socket_write,socket_close);
 	if (portref&HOGAN_LINEBASED) conn->_sendsuffix="\n";
 	socket_callback(conn,0); //Signal initialization with null data (and no _closing in conn)

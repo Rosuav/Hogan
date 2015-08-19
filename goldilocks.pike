@@ -71,7 +71,8 @@ mapping(int:function) services=([
 //conn->_writeme: Buffered data for writing (may be a string(0..255) or a Stdio.Buffer); is
 //  always bytes, not Unicode text
 //conn->_written: Number of bytes of _writeme already written. Used only if _writeme is
-//  more than WRITE_CHUNK long (and ergo only if WRITE_CHUNK is set).
+//  more than WRITE_CHUNK long (and ergo only if WRITE_CHUNK is set) and if Stdio.Buffer is
+//  not available.
 //conn->_closing: Flag set to 1 when connection is closed; see usage example.
 //conn->_close: Set this to 1 to request that the connection be closed once all buffered
 //  data is written (including anything returned from this call)
