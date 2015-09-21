@@ -2,6 +2,11 @@
 //Note that this is every bit as insecure as telnetd otherwise would be,
 //plus it's dumb and naive to boot. But if you have some other process that
 //you want to invoke, or something, this kind of technique will work.
+//Actually, this is even less secure than telnetd, or possibly more secure;
+//it doesn't send passwords in clear text across the internet... because it
+//doesn't require a password at all! You get direct shell access as the
+//account that this script is running as. So be smart: Treat this as a code
+//example, and NOT as something you would put on the public internet!
 mapping(int:function) services=([2300:telnetd]);
 
 void console_text(mapping(string:mixed) conn,string(0..255) data)
