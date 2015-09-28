@@ -9,7 +9,7 @@ object goldi=class{ }(); //Current goldilocks. Will be updated at any time (eg i
 mapping(int:object) socket=([]);
 
 constant HOGAN_PLAIN=0x00000,HOGAN_LINEBASED=0x10000,HOGAN_UDP=0x20000,HOGAN_DNS=0x30000,HOGAN_CONNTYPE=0xF0000; //Connection types (not bitwise, but portref&HOGAN_CONNTYPE will be equal to some value)
-constant HOGAN_TELNET=0x100000,HOGAN_UTF8=0x200000,HOGAN_SSL=0x400000,HOGAN_ACTIVE=0x800000; //Additional flags which can be applied on top of a connection type
+constant HOGAN_TELNET=0x100000,HOGAN_UTF8=0x200000,HOGAN_SSL=0x400000,HOGAN_ACTIVE=0x800000; //Additional flags which can be applied on top of some connection types
 string describe_conntype(int portref)
 {
 	return ({
