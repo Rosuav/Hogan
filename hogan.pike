@@ -22,6 +22,9 @@ string describe_conntype(int portref)
 }
 string describe_portref(int portref) {return sprintf("%d [%s]",portref&65535,describe_conntype(portref));}
 
+#if constant(Stdio.Buffer) && !defined(DISABLE_BUFFER)
+#define BUFFER
+#endif
 //If conn->_writeme exceeds this many bytes, conn->_written will be used.
 //Also, any time conn->_written exceeds this much, it'll be trimmed from _writeme.
 //Not set by default as it can impact performance on the common case; the best
@@ -38,7 +41,7 @@ void socket_write(mapping(string:mixed) conn)
 	if (!conn->_sock) return;
 	if (sizeof(conn->_writeme) && !conn->_closing && conn->_sock && conn->_sock->is_open())
 	{
-		#if constant(Stdio.Buffer)
+		#ifdef BUFFER
 		//Attempt to write as much as possible, and trim it from the buffer.
 		conn->_writeme->output_to(conn->_sock);
 		#elif defined(WRITE_CHUNK)
@@ -61,7 +64,7 @@ void writeme(mapping(string:mixed) conn,string data)
 {
 	if (conn->_sendsuffix) data+=conn->_sendsuffix;
 	if (conn->_portref&HOGAN_UTF8) data=string_to_utf8(data);
-	#if constant(Stdio.Buffer)
+	#ifdef BUFFER
 	conn->_writeme->add(data);
 	#else
 	conn->_writeme+=data;
@@ -78,7 +81,7 @@ void send(mapping(string:mixed) conn,string|array(int) data)
 			{
 				data=replace((string)data,"\xFF","\xFF\xFF"); //Double any IACs embedded in a Telnet sequence
 				if (data[0]==SB) data+=(string)({IAC,SE});
-				#if constant(Stdio.Buffer)
+				#ifdef BUFFER
 				conn->_writeme->add(({255,data}));
 				#else
 				conn->_writeme+="\xFF"+data;
@@ -167,7 +170,7 @@ void accept(object sock,int portref)
 {
 	mixed conn=sock->query_id(); if (!mappingp(conn)) sock->set_id(conn=([]));
 	conn->_sock=sock; conn->_portref=portref; conn->_data=conn->_telnetbuf="";
-	#if constant(Stdio.Buffer)
+	#ifdef BUFFER
 	conn->_writeme=Stdio.Buffer();
 	#else
 	conn->_writeme="";
