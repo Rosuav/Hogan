@@ -5,6 +5,10 @@ mapping(int:function) services=([
 	23|HOGAN_ACTIVE:proxy,
 ]);
 
+//Specify a password on the command line, or use the default. Either way, it's not highly
+//secure - it's just to stop accidental usage.
+string password = G->options->password || "rosuavisageek";
+
 string(0..255) proxy(mapping(string:mixed) conn,string(0..255) data)
 {
 	if (!data)
@@ -20,7 +24,7 @@ string(0..255) proxy(mapping(string:mixed) conn,string(0..255) data)
 	sscanf(conn->buffer,"%s\n%s",string line,conn->buffer);
 	line-="\r";
 	if (line=="quit") {conn->_close=1; return "Bye!\r\n";}
-	if (lower_case(line)-" "!="rosuavisageek") return "Nope!\r\nEnter password: ";
+	if (lower_case(line)-" "!=password) return "Nope!\r\nEnter password: ";
 	write("Correct password from %s\n",conn->_sock->query_address());
 	G->connect(conn->otherconn=(["_portref":23|HOGAN_ACTIVE,"_ip":"64.253.105.42","otherconn":conn]));
 	return "Connecting, please wait...\r\n";
