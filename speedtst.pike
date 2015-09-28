@@ -6,7 +6,7 @@ string(0..255) speed(mapping(string:mixed) conn,string(0..255) data)
 	if (conn->_closing) {write("%X: done\n",hash_value(conn)); return "";}
 	write("%X: New connection from %s\n",hash_value(conn),conn->_sock->query_address());
 	#ifndef WRITE_CHUNK
-	if (stringp(conn->_writeme)) write("WARNING: Using unchunked mode may have a performance penalty.\n");
+	if (stringp(conn->_writeme)) write("WARNING: Unchunked mode without Stdio.Buffer support may perform poorly.\n");
 	#endif
 	return "#"*1024*1024*256;
 }
