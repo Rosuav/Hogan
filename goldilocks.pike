@@ -152,7 +152,8 @@ array(int)|string(0..255) telnet(mapping(string:mixed) conn,string(0..255)|array
 //Identical in structure to smtp, but its string arguments are Unicode, not bytes, strings.
 string text(mapping(string:mixed) conn,string line)
 {
-	if (!line) return 0;
+	if (!line) {write("Connection: %d/%O\n",conn->_closing,conn->_sock); return 0;}
+	write("%O\n",line);
 	if (line[-1]=='K') line=(string)(float)line+"°K"; //Cheat for code simplicity: "273.15 K" -> "273.15°K"
 	if (sscanf(line,"%f°%c",float deg,int type))
 	{
