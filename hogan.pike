@@ -170,11 +170,14 @@ void accept(object sock,int portref)
 {
 	mixed conn=sock->query_id(); if (!mappingp(conn)) sock->set_id(conn=([]));
 	conn->_sock=sock; conn->_portref=portref; conn->_data=conn->_telnetbuf="";
-	#ifdef BUFFER
-	conn->_writeme=Stdio.Buffer();
-	#else
-	conn->_writeme="";
-	#endif
+	if (!conn->_writeme)
+	{
+		#ifdef BUFFER
+		conn->_writeme=Stdio.Buffer();
+		#else
+		conn->_writeme="";
+		#endif
+	}
 	sock->set_nonblocking((portref&HOGAN_TELNET)?telnet_read:socket_read,socket_write,socket_close);
 	if (portref&HOGAN_LINEBASED) conn->_sendsuffix="\n";
 	socket_callback(conn,0); //Signal initialization with null data (and no _closing in conn)
@@ -223,6 +226,7 @@ void connect(mapping(string:mixed) conn)
 	sock->open_socket();
 	sock->set_nonblocking(0,connected,connfail);
 	sock->connect(conn->_ip,conn->_portref&65535);
+	conn->_writeme=Stdio.Buffer();
 }
 
 //Returns 1 on error, but that's ignored if it's a sighup.
