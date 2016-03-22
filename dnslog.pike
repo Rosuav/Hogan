@@ -1,5 +1,7 @@
 mapping(int:function) services=([53|HOGAN_DNS:dns]);
 
+object upstream = Protocols.DNS.async_client(); //Optionally specify an IP here
+
 mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb)
 {
 	mapping q=query->qd[0];
@@ -9,6 +11,7 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 		([T(A), T(AAAA), T(MX), T(NS), T(PTR), T(SOA), T(TXT), T(SPF)])[q->type] || (string)q->type,
 		([Protocols.DNS.C_IN:"IN"])[q->cl] || (string)q->cl,
 	);
+	upstream->do_query(q->name, q->cl, q->type, lambda(string q, mapping i) {cb(i);});
 }
 
 void drop_perms()
