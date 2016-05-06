@@ -39,7 +39,7 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 			foreach (Stdio.read_file("/etc/hosts")/"\n",string line)
 			{
 				sscanf(line,"%s#",line); line=String.normalize_space(line);
-				array parts=line/" ";
+				array parts=lower_case(line)/" ";
 				if (sizeof(parts)<2) continue; //Ignore this line - probably blank
 				//PTR records match the first field (IP address) and return the second (canonical name).
 				if (q->type==Protocols.DNS.T_PTR && normalize_address(parts[0])==name)
