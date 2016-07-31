@@ -39,4 +39,4 @@ void drop_perms()
 	write("Permissions dropped - now u%d/%d g%d/%d\n",getuid(),geteuid(),getgid(),getegid());
 }
 
-void create() {call_out(drop_perms,0);}
+void create() {if (!getuid()) call_out(drop_perms,0);}
