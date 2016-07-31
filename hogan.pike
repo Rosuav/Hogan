@@ -312,6 +312,7 @@ Description=Hogan calling on %s
 Environment=DISPLAY=%s
 WorkingDirectory=%s
 ExecStart=%s %s %[0]s
+ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=10
 
