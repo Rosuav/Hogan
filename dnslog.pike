@@ -14,7 +14,7 @@ string ip_to_host(string ip)
 		sscanf(line,"%s#",line); line=String.normalize_space(line);
 		array parts=lower_case(line)/" ";
 		if (sizeof(parts)<2) continue; //Ignore this line - probably blank
-		if (parts[0] == ip) return ip + "/" + parts[-1];
+		if (parts[0] == ip) return ip + "/" + parts[-1]; //Use parts[1] instead to return the canonical name
 	}
 }
 
