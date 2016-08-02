@@ -32,6 +32,7 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 	upstream->do_query(q->name, q->cl, q->type, respond, cb);
 }
 
+//TODO: Should this instead drop to SUDO_UID/SUDO_GID?
 void drop_perms()
 {
 	setgid(1000);
