@@ -2,6 +2,7 @@ mapping(int:function) services=([53|HOGAN_DNS:dns]);
 
 Protocols.DNS.async_dual_client upstream = Protocols.DNS.async_dual_client();
 Stdio.File log = Stdio.File("dnsrequests.log", "wac");
+object sharehosts = compile_file("sharehosts.pike")();
 
 //Convert an IP address to a name from /etc/hosts - somewhat like a reverse DNS
 //lookup, but won't go out over the internet. Also, unusually, returns the *last*
@@ -29,6 +30,8 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 		([T(A), T(AAAA), T(MX), T(NS), T(PTR), T(SOA), T(TXT), T(SPF)])[q->type] || (string)q->type,
 		([Protocols.DNS.C_IN:"IN"])[q->cl] || (string)q->cl,
 	);
+	mapping resp = sharehosts->dns(portref, query, udp_data, cb);
+	if (!resp->rcode) return resp; //It claims to be successful? Fine, return that then.
 	upstream->do_query(q->name, q->cl, q->type, respond, cb);
 }
 
