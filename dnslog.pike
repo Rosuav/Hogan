@@ -32,6 +32,9 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 	);
 	mapping resp = sharehosts->dns(portref, query, udp_data, cb);
 	if (!resp->rcode) return resp; //It claims to be successful? Fine, return that then.
+	//TODO: Cache upstream's queries (based on TTLs)
+	//Cache can be stored in G->G so it's retained across SIGHUP, but needn't be
+	//retained on disk or anything.
 	upstream->do_query(q->name, q->cl, q->type, respond, cb);
 }
 
