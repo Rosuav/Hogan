@@ -39,6 +39,7 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 }
 
 //TODO: Should this instead drop to SUDO_UID/SUDO_GID?
+//And should privilege dropping be handled by Hogan, rather than the Goldi?
 void drop_perms()
 {
 	setgid(1000);
