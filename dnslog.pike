@@ -6,7 +6,8 @@ object sharehosts = compile_file("sharehosts.pike")();
 
 //Convert an IP address to a name from /etc/hosts - somewhat like a reverse DNS
 //lookup, but won't go out over the internet. Also, unusually, returns the *last*
-//name, not the first, because of how I have my hosts file set up.
+//name, not the first, because of how I have my hosts file set up. This is for
+//logs only, not for actual PTR resolution.
 string ip_to_host(string ip)
 {
 	//Lifted from sharehosts.pike
@@ -17,6 +18,7 @@ string ip_to_host(string ip)
 		if (sizeof(parts)<2) continue; //Ignore this line - probably blank
 		if (parts[0] == ip) return ip + "/" + parts[-1]; //Use parts[1] instead to return the canonical name
 	}
+	return ip;
 }
 
 void respond(string name, mapping info, function(mapping:void) cb) {cb(info);}
