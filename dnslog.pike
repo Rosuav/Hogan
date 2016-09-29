@@ -1,5 +1,6 @@
 mapping(int:function) services=([53|HOGAN_DNS:dns]);
 
+//TODO: Cope adequately with all arrangements of incoming and outgoing TCP.
 Protocols.DNS.async_dual_client upstream = Protocols.DNS.async_dual_client();
 Stdio.File log = Stdio.File("dnsrequests.log", "wac");
 object sharehosts = compile_file("sharehosts.pike")();
