@@ -10,6 +10,24 @@ POSIX requirement. (Seems to work on Linux, no idea about other platforms.)
 Named after the call-sign used on Hogan's Heroes.
 */
 
+/* A note on strings.
+
+Throughout this code, strings of various types can be found. These generally fall into
+one of these categories:
+
+* Untyped "string" - could be anything. Should be avoided.
+* string(32bit) - can store any values. Has no semantic meaning. Also generally avoided.
+* string(21bit) - Unicode text. This is the most normal human-readable text string.
+* string(8bit) - bytes. Arbitrary eight-bit data that can be sent across the internet.
+* string(7bit) - ASCII-only text or equivalent bytes. Can be treated as either text (a
+		subset of string(21bit)) or as bytes (a subset of string(8bit)), on the
+		assumption that conversions between text and bytes will always be done
+		using an ASCII-compatible encoding such as UTF-8.
+
+Note that for compatibility with older Pikes, this file uses the older notation:
+string(0..127), string(0..255), string(0..1114111), string(0..4294967295)
+*/
+
 mapping(int:function) services=([
 	//Each service is identified by a port and a type, which is one or more bitflags.
 	//This combination is called a "portref" and must be unique. (Note that the same
@@ -150,7 +168,7 @@ array(int)|string(0..255) telnet(mapping(string:mixed) conn,string(0..255)|array
 }
 
 //Identical in structure to smtp, but its string arguments are Unicode, not bytes, strings.
-string text(mapping(string:mixed) conn,string line)
+string(0..1114111) text(mapping(string:mixed) conn, string(0..1114111) line)
 {
 	if (!line) {write("Connection: %d/%O\n",conn->_closing,conn->_sock); return 0;}
 	write("%O\n",line);
