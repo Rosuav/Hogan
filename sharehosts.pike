@@ -5,7 +5,7 @@
 mapping(int:function) services=([53|HOGAN_DNS:dns]);
 
 constant TTL=60; //Tune according to your requirements. The hosts file doesn't have TTLs, obviously.
-constant SEARCH_DOMAIN = ".garden.rosuav.com"; //Names in this domain (with leading dot) are accepted as hostname lookups.
+constant SEARCH_DOMAINS = ({"garden.rosuav.com", "rosuav.com"}); //Names in these domains are accepted as hostname lookups.
 
 //Normalize an IPv4 or IPv6 address
 //In theory, any two strings representing the same address will normalize
@@ -20,7 +20,8 @@ string normalize_address(string addr)
 mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb)
 {
 	mapping q=query->qd[0];
-	string name = lower_case(q->name) - SEARCH_DOMAIN;
+	string name = lower_case(q->name);
+	foreach (SEARCH_DOMAINS, string dom) if (has_suffix(name, dom)) name -= "." + dom;
 	write("DNS request: %s %s %s\n",name,
 		#define T(x) Protocols.DNS.T_##x:#x
 		([T(A), T(AAAA), T(MX), T(NS), T(PTR), T(SOA), T(TXT), T(SPF)])[q->type] || (string)q->type,
