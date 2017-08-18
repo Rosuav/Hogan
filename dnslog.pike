@@ -67,7 +67,6 @@ void respond(string name, mapping info, function(mapping:void) cb)
 	//are removed (eg you remove a CNAME and replace it with an A/AAAA), we will keep
 	//the cached version until its TTL expires.
 	G->G->dns_cache += cache;
-	write("%O => %O\n", name, G->G->dns_cache);
 }
 
 //Check the cache for records matching the name/type.
