@@ -98,8 +98,7 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 	mapping q=query->qd[0];
 	string name=lower_case(q->name);
 	log->write("[%s] [%s] %s %s %s\n", ctime(time())[..<1], ip_to_host(udp_data->ip), name,
-		#define T(x) Protocols.DNS.T_##x:#x
-		([T(A), T(AAAA), T(MX), T(NS), T(PTR), T(SOA), T(TXT), T(SPF)])[q->type] || (string)q->type,
+		dns_types[q->type] || (string)q->type,
 		([Protocols.DNS.C_IN:"IN"])[q->cl] || (string)q->cl,
 	);
 	mapping resp = sharehosts->dns(portref, query, udp_data, cb);
