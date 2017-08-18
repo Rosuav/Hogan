@@ -109,17 +109,17 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 	//2) Look for a corresponding record of the same type.
 	if (q->cl == Protocols.DNS.C_IN) //In the unlikely event that we get non-IN queries, just bypass the cache.
 	{
-		if (array cname = check_cache(q->name, Protocols.DNS.T_CNAME))
+		array cnames = ({ });
+		string name = q->name;
+		while (array cname = check_cache(name, Protocols.DNS.T_CNAME))
 		{
-			mapping rr = cname[0]; //There should be only one.
-			array target = check_cache(rr->cname, q->type);
-			if (target) cname += target; //If we know the destination, send it too.
-			//TODO: Also return other useful records, in the ADDITIONAL section
-			return (["an": cname]);
+			cnames += cname;
+			name = cname[0]->cname; //There should be exactly one record.
 		}
-		if (array cache = check_cache(q->name, q->type))
+		array cache = cnames + (check_cache(name, q->type) || ({ }));
+		if (sizeof(cache))
 		{
-			//TODO: Possibly also return other useful records, as above
+			//TODO: Possibly also return other useful records in the ADDITIONAL section
 			return (["an": cache]);
 		}
 	}
