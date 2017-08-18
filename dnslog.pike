@@ -31,17 +31,34 @@ string cachekey(string name, int type)
 	return sprintf("%s/%s", name, dns_types[type] || (string)type);
 }
 
-void respond(string name, mapping info, function(mapping:void) cb)
+void respond(string name, mapping info, function(mapping:void) cb, array cnames)
 {
 	//TODO: Cache upstream's queries (based on TTLs)
 	//Cache can be stored in G->G so it's retained across SIGHUP, but needn't be
 	//retained on disk or anything.
-	cb(info);
 	//For the moment, we cache only those requests which succeed.
 	//Note that we also do not cache negative responses (eg "you requested an A
 	//record for this name but none were returned"). They will be retried every
 	//time they are requested.
-	if (!info || info->rcode) return;
+	if (!info || info->rcode) {cb(info); return;}
+	if (sizeof(cnames))
+	{
+		//Synthesize a request partly from the cache and partly from the
+		//new response. WARNING: This can actually violate TTLs slightly.
+		//If the upstream query takes several seconds, the CNAME records
+		//from the cache will be returned as per the *start* of the query,
+		//not the end. But honestly, I don't know what else I can do - what
+		//if they've expired by the time I do the next query? Do I have to
+		//discard what I have and start over?
+		//One option would be to just populate the cache, then retrigger
+		//the query. Would that work?
+		cb((["an": cnames + info->an]));
+	}
+	else
+	{
+		//Send the upstream request back downstream, unchanged.
+		cb(info);
+	}
 	//Cacheable records can be in the ANSWER or ADDITIONAL section. We never cache
 	//the AUTHORITY.
 	array cacheme = info->an + info->ar;
@@ -107,23 +124,22 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 	//Check the cache for valid records.
 	//1) Look for a CNAME for this name. If so, return it.
 	//2) Look for a corresponding record of the same type.
+	array cnames = ({ });
 	if (q->cl == Protocols.DNS.C_IN) //In the unlikely event that we get non-IN queries, just bypass the cache.
 	{
-		array cnames = ({ });
-		string name = q->name;
 		while (array cname = check_cache(name, Protocols.DNS.T_CNAME))
 		{
 			cnames += cname;
 			name = cname[0]->cname; //There should be exactly one record.
 		}
-		array cache = cnames + (check_cache(name, q->type) || ({ }));
-		if (sizeof(cache))
+		array cache = check_cache(name, q->type);
+		if (cache)
 		{
 			//TODO: Possibly also return other useful records in the ADDITIONAL section
-			return (["an": cache]);
+			return (["an": cnames + cache]);
 		}
 	}
-	upstream->do_query(q->name, q->cl, q->type, respond, cb);
+	upstream->do_query(name, q->cl, q->type, respond, cb, cnames);
 }
 
 //TODO: Should this instead drop to SUDO_UID/SUDO_GID?
