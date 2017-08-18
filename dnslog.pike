@@ -51,7 +51,12 @@ void respond(string name, mapping info, function(mapping:void) cb, array cnames)
 		//if they've expired by the time I do the next query? Do I have to
 		//discard what I have and start over?
 		//One option would be to just populate the cache, then retrigger
-		//the query. Would that work?
+		//the query. Would that work? It would potentially mean an infinite
+		//loop with a degenerate authoritative server that sends a CNAME
+		//with a TTL of 86400, pointing to a CNAME with a TTL of 1, pointing
+		//to a remote A record. We would cache the first CNAME, then get
+		//stuck looking up the A record, finding that the second CNAME is now
+		//stale, starting over, using the cached CNAME, rinse and repeat.
 		cb((["an": cnames + info->an]));
 	}
 	else
