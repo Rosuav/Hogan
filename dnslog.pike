@@ -33,7 +33,7 @@ string cachekey(string name, int type)
 
 void respond(string name, mapping info, function(mapping:void) cb, array cnames)
 {
-	//TODO: Cache upstream's queries (based on TTLs)
+	//Cache upstream's queries (based on TTLs) and pass the results downstream
 	//Cache can be stored in G->G so it's retained across SIGHUP, but needn't be
 	//retained on disk or anything.
 	//For the moment, we cache only those requests which succeed.
