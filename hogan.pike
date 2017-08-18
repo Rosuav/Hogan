@@ -302,6 +302,7 @@ int main(int argc,array(string) argv)
 		//Attempt to install this goldi as a systemd service.
 		//Note that, if this works, non-restart reloading can be done with:
 		//  sudo systemctl kill -s HUP goldilocks.service
+		//(Normally, of course, you'd use the 'systemctl reload' command.)
 		string pike=master()->_pike_file_name; //Reaching into private space? Hmm.
 		if (!has_prefix(pike,"/")) pike=Process.search_path(pike);
 		string svc=(goldiname/".")[0]+".service";
