@@ -114,6 +114,8 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 		if (array cname = check_cache(q->name, Protocols.DNS.T_CNAME))
 		{
 			mapping rr = cname[0]; //There should be only one.
+			array target = check_cache(rr->cname, q->type);
+			if (target) cname += target; //If we know the destination, send it too.
 			//TODO: Also return other useful records, in the ADDITIONAL section
 			return (["an": cname]);
 		}
