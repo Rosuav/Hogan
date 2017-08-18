@@ -22,7 +22,13 @@ string ip_to_host(string ip)
 	return ip;
 }
 
-void respond(string name, mapping info, function(mapping:void) cb) {cb(info);}
+void respond(string name, mapping info, function(mapping:void) cb)
+{
+	//TODO: Cache upstream's queries (based on TTLs)
+	//Cache can be stored in G->G so it's retained across SIGHUP, but needn't be
+	//retained on disk or anything.
+	cb(info);
+}
 
 mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb)
 {
@@ -35,9 +41,6 @@ mapping dns(int portref,mapping query,mapping udp_data,function(mapping:void) cb
 	);
 	mapping resp = sharehosts->dns(portref, query, udp_data, cb);
 	if (!resp->rcode) return resp; //It claims to be successful? Fine, return that then.
-	//TODO: Cache upstream's queries (based on TTLs)
-	//Cache can be stored in G->G so it's retained across SIGHUP, but needn't be
-	//retained on disk or anything.
 	upstream->do_query(q->name, q->cl, q->type, respond, cb);
 }
 
