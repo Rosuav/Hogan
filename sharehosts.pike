@@ -66,4 +66,4 @@ void drop_perms()
 	write("Permissions dropped - now u%d/%d g%d/%d\n",getuid(),geteuid(),getgid(),getegid());
 }
 
-void create() {if (!getuid()) call_out(drop_perms,0);}
+protected void create() {if (!getuid()) call_out(drop_perms,0);}

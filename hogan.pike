@@ -94,7 +94,7 @@ void send(mapping(string:mixed) conn,string|array(int) data)
 	socket_write(conn);
 }
 
-void socket_callback(mapping(string:mixed) conn,string|array(int) data)
+void socket_callback(mapping(string:mixed) conn,string|array(int)|zero data)
 {
 	string writeme;
 	if (conn->_portref&HOGAN_UTF8) catch {data=utf8_to_string(data);}; //Attempt a UTF-8 decode; if it fails, fall back on Latin-1.
@@ -189,7 +189,7 @@ void acceptloop(int portref)
 }
 
 //Basically a closure, but this is simpler than lambdaing everything.
-class callback_caller(int portref) {void `()(mixed data)
+class callback_caller(int portref) {protected void `()(mixed data)
 {
 	if (mixed ex=catch {goldi->services[portref](portref,data);})
 		werror("Error in port %s handler:\n%s\n",describe_portref(portref),describe_backtrace(ex));
@@ -202,7 +202,7 @@ class dns(int portref)
 	#else
 	inherit Protocols.DNS.server;
 	#endif
-	void create() {::create(portref&65535);}
+	protected void create() {::create(portref&65535);}
 	mapping reply_query(mixed ... args) {return goldi->services[portref](portref,@args);}
 	void close() {destruct();}
 }

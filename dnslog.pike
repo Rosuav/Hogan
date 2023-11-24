@@ -156,7 +156,7 @@ void drop_perms()
 	write("Permissions dropped - now u%d/%d g%d/%d\n",getuid(),geteuid(),getgid(),getegid());
 }
 
-void create()
+protected void create()
 {
 	if (!G->G->dns_cache) G->G->dns_cache = ([]);
 	if (!getuid()) call_out(drop_perms,0);
