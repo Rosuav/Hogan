@@ -202,7 +202,11 @@ class dns(int portref)
 	#else
 	inherit Protocols.DNS.server;
 	#endif
-	protected void create() {::create(portref&65535);}
+	protected void create() {
+		//Hacked in as a test. Not supported by other port types as yet.
+		if (string ip = getenv("HOGAN_LISTEN_ADDRESS")) ::create(ip, portref & 65535);
+		else ::create(portref & 65535);
+	}
 	mapping reply_query(mixed ... args) {return goldi->services[portref](portref,@args);}
 	void close() {destruct();}
 }
